@@ -14,10 +14,22 @@
 
 #define NUM_STEPPERS 12
 #define STEP_MODE DOUBLE // you can change this to SINGLE, DOUBLE or INTERLEAVE or MICROSTEP
+#define motorSpeed 1200
+#define motorAccel 1000
+#define MAX_TRAVEL 30000 // Change this to set the max height of the steppers in steps
 
 const char  eol = '\n'; // end of line character
 const String stepperStart = " 1";
 const String stepperStop = " 0";
+
+String inputString = "";
+//int inputArray[12];
+int currentInputIndex = 0;
+boolean positionChanged = false;
+
+
+int inputArray[12] = {-MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL};
+int limitPins[NUM_STEPPERS] = {2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14 };
 
 boolean stepperRunning[NUM_STEPPERS] = {false, false, false, false, false, false,false, false, false, false, false, false};
 
@@ -30,56 +42,58 @@ Adafruit_MotorShield AFMS4 = Adafruit_MotorShield(0x64); // board ID + 4
 Adafruit_MotorShield AFMS5 = Adafruit_MotorShield(0x65); // board ID + 5
 
 // Connect a stepper motors with 200 steps per revolution (1.8 degree)
-Adafruit_StepperMotor *motor0 = AFMS0.getStepper(200, 1);
-Adafruit_StepperMotor *motor1 = AFMS0.getStepper(200, 2);
-Adafruit_StepperMotor *motor2 = AFMS1.getStepper(200, 1);
-Adafruit_StepperMotor *motor3 = AFMS1.getStepper(200, 2);
-Adafruit_StepperMotor *motor4 = AFMS2.getStepper(200, 1);
-Adafruit_StepperMotor *motor5 = AFMS2.getStepper(200, 2);
-Adafruit_StepperMotor *motor6 = AFMS3.getStepper(200, 1);
-Adafruit_StepperMotor *motor7 = AFMS3.getStepper(200, 2);
-Adafruit_StepperMotor *motor8 = AFMS4.getStepper(200, 1);
-Adafruit_StepperMotor *motor9 = AFMS4.getStepper(200, 2);
-Adafruit_StepperMotor *motor10 = AFMS5.getStepper(200, 1);
-Adafruit_StepperMotor *motor11 = AFMS5.getStepper(200, 2);
+Adafruit_StepperMotor *motors[NUM_STEPPERS] = {
+  AFMS0.getStepper(200, 1),
+  AFMS0.getStepper(200, 2),
+  AFMS1.getStepper(200, 1),
+  AFMS1.getStepper(200, 2),
+  AFMS2.getStepper(200, 1),
+  AFMS2.getStepper(200, 2),
+  AFMS3.getStepper(200, 1),
+  AFMS3.getStepper(200, 2),
+  AFMS4.getStepper(200, 1),
+  AFMS4.getStepper(200, 2),
+  AFMS5.getStepper(200, 1),
+  AFMS5.getStepper(200, 2)
+};
 
 // wrappers for the Adafruit motors to work with AccelStepper
 // first motor
-void forwardstep0() { motor0->onestep(FORWARD, STEP_MODE); }
-void backwardstep0() {  motor0->onestep(BACKWARD, STEP_MODE); }
+void forwardstep0() { motors[0]->onestep(FORWARD, STEP_MODE); }
+void backwardstep0() { motors[0]->onestep(BACKWARD, STEP_MODE); }
 // second motor
-void forwardstep1() { motor1->onestep(FORWARD, STEP_MODE); }
-void backwardstep1() { motor1->onestep(BACKWARD, STEP_MODE); }
+void forwardstep1() { motors[1]->onestep(FORWARD, STEP_MODE); }
+void backwardstep1() { motors[1]->onestep(BACKWARD, STEP_MODE); }
 // third motor
-void forwardstep2() { motor2->onestep(FORWARD, STEP_MODE); }
-void backwardstep2() { motor2->onestep(BACKWARD, STEP_MODE); }
+void forwardstep2() { motors[2]->onestep(FORWARD, STEP_MODE); }
+void backwardstep2() { motors[2]->onestep(BACKWARD, STEP_MODE); }
 // forth motor
-void forwardstep3() { motor3->onestep(FORWARD, STEP_MODE); }
-void backwardstep3() { motor3->onestep(BACKWARD, STEP_MODE); }
+void forwardstep3() { motors[3]->onestep(FORWARD, STEP_MODE); }
+void backwardstep3() { motors[3]->onestep(BACKWARD, STEP_MODE); }
 // fith motor
-void forwardstep4() { motor4->onestep(FORWARD, STEP_MODE); }
-void backwardstep4() { motor4->onestep(BACKWARD, STEP_MODE); }
+void forwardstep4() { motors[4]->onestep(FORWARD, STEP_MODE); }
+void backwardstep4() { motors[4]->onestep(BACKWARD, STEP_MODE); }
 // sixth motor
-void forwardstep5() { motor5->onestep(FORWARD, STEP_MODE); }
-void backwardstep5() { motor5->onestep(BACKWARD, STEP_MODE); }
+void forwardstep5() { motors[5]->onestep(FORWARD, STEP_MODE); }
+void backwardstep5() { motors[5]->onestep(BACKWARD, STEP_MODE); }
 // seventh motor
-void forwardstep6() { motor6->onestep(FORWARD, STEP_MODE); }
-void backwardstep6() {  motor6->onestep(BACKWARD, STEP_MODE); }
+void forwardstep6() { motors[6]->onestep(FORWARD, STEP_MODE); }
+void backwardstep6() { motors[6]->onestep(BACKWARD, STEP_MODE); }
 // eigth motor
-void forwardstep7() { motor7->onestep(FORWARD, STEP_MODE); }
-void backwardstep7() { motor7->onestep(BACKWARD, STEP_MODE); }
+void forwardstep7() { motors[7]->onestep(FORWARD, STEP_MODE); }
+void backwardstep7() { motors[7]->onestep(BACKWARD, STEP_MODE); }
 // ninth motor
-void forwardstep8() { motor8->onestep(FORWARD, STEP_MODE); }
-void backwardstep8() { motor8->onestep(BACKWARD, STEP_MODE); }
+void forwardstep8() { motors[8]->onestep(FORWARD, STEP_MODE); }
+void backwardstep8() { motors[8]->onestep(BACKWARD, STEP_MODE); }
 // tenth motor
-void forwardstep9() { motor9->onestep(FORWARD, STEP_MODE); }
-void backwardstep9() { motor9->onestep(BACKWARD, STEP_MODE); }
+void forwardstep9() { motors[9]->onestep(FORWARD, STEP_MODE); }
+void backwardstep9() { motors[9]->onestep(BACKWARD, STEP_MODE); }
 // eleventh motor
-void forwardstep10() { motor10->onestep(FORWARD, STEP_MODE); }
-void backwardstep10() { motor10->onestep(BACKWARD, STEP_MODE); }
+void forwardstep10() { motors[10]->onestep(FORWARD, STEP_MODE); }
+void backwardstep10() { motors[10]->onestep(BACKWARD, STEP_MODE); }
 // twelfth motor
-void forwardstep11() { motor11->onestep(FORWARD, STEP_MODE); }
-void backwardstep11() { motor11->onestep(BACKWARD, STEP_MODE); }
+void forwardstep11() { motors[11]->onestep(FORWARD, STEP_MODE); }
+void backwardstep11() { motors[11]->onestep(BACKWARD, STEP_MODE); }
 
 // wrap the motors in an AccelStepper object array
 AccelStepper steppers[NUM_STEPPERS] = {
@@ -105,49 +119,94 @@ void setup() {
     AFMS3.begin(); // start the Adafruit board
     AFMS4.begin(); // start the Adafruit board
     AFMS5.begin(); // start the Adafruit board
+
+    pinMode(limitPins[0],INPUT_PULLUP);
+    pinMode(limitPins[1],INPUT_PULLUP);
+    pinMode(limitPins[2],INPUT_PULLUP);
+    pinMode(limitPins[3],INPUT_PULLUP);
+    pinMode(limitPins[4],INPUT_PULLUP);
+    pinMode(limitPins[5],INPUT_PULLUP);
+    pinMode(limitPins[6],INPUT_PULLUP);
+    pinMode(limitPins[7],INPUT_PULLUP);
+    pinMode(limitPins[8],INPUT_PULLUP);
+    pinMode(limitPins[9],INPUT_PULLUP);
+    pinMode(limitPins[10],INPUT_PULLUP);
+    pinMode(limitPins[11],INPUT_PULLUP);
+    pinMode(limitPins[12],INPUT_PULLUP);
+    updateMotorPositions();
 }
 
 void loop() {
   for( int i=0; i <  NUM_STEPPERS; i++) {
     steppers[i].run();
     // check to see if any moves have finished
-    if (steppers[i].distanceToGo() == 0 && stepperRunning[i]) {
-      String stepperIDstring = String(i) + stepperStop;
-      Serial.println(stepperIDstring);
+    if ((steppers[i].distanceToGo() == 0 && stepperRunning[i]) || (digitalRead(limitPins[i]) == HIGH && stepperRunning[i])) {
+      if (digitalRead(limitPins[i]) == HIGH) {
+        steppers[i].setCurrentPosition(0);
+        steppers[i].moveTo(0);
+      }
+      motors[i]->release();
       stepperRunning[i] = false;
+      positionChanged = true;
     }
   }
   
   if (Serial.available() > 0) {
-    // get the parameters in the form: stepperID locationToMoveTo speed acceleration
-    // e.g. 1 200 300 300 requests that the second motor moves to position 200 with a max speed of 300, and acceleration of 300
-    int stepperID = Serial.parseInt();
-    String stepperIDstring = String(stepperID);
-    int location = Serial.parseInt();
-    float speed = Serial.parseFloat();
-    float acceleration = Serial.parseFloat();
-    // read in the line end before we use the values
-    if (Serial.read() == eol) {
-      //speed = max(speed,1);
-      acceleration = max(acceleration,1);
-      if (stepperID >= 0 && stepperID < NUM_STEPPERS) {
-        if (speed > 0) {
-          steppers[stepperID].setMaxSpeed(speed);
-          steppers[stepperID].setAcceleration(acceleration);
-          steppers[stepperID].moveTo(location);
-          stepperRunning[stepperID] = true;
-          stepperIDstring += stepperStart;
-          Serial.println(stepperIDstring);
-        } else { // stop where we are when speed is less than 1
-          steppers[stepperID].setAcceleration(acceleration);
-          steppers[stepperID].stop();         
-          steppers[stepperID].run();
-          steppers[stepperID].run();
-          stepperRunning[stepperID] = false;
-          stepperIDstring += stepperStop;
-          Serial.println(stepperIDstring);
-        }
-      }
+    serialInput();
+  }
+
+  if (positionChanged == true) {
+    positionChanged = false;
+    printMotorPositions();
+  }
+}
+
+void serialInput() {
+  while (Serial.available()) {
+    char inChar = (char)Serial.read();
+    if(inChar == 'P') {
+      printMotorPositions();
+    } else if(inChar == '?') {
+      currentInputIndex = 0;
+    } else if (inChar == ',') {
+      inputArray[currentInputIndex] = inputString.toInt();
+      inputString = "";
+      currentInputIndex++;
+    } else if (inChar == '\n') {
+      updateMotorPositions();
+    } else if (currentInputIndex > NUM_STEPPERS) {
+      Serial.println('Error too many inputs');
+    } else {
+      inputString += inChar;      
     }
   }
 }
+
+void updateMotorPositions() {
+  Serial.print("Updating motor positions ");
+  for(int i = 0; i < NUM_STEPPERS; i++) {
+    if (inputArray[i] > MAX_TRAVEL) {
+      inputArray[i] = MAX_TRAVEL;
+    }
+    
+    Serial.print(inputArray[i]);
+    Serial.print(" ");
+    stepperRunning[i] = true;
+    steppers[i].setMaxSpeed(motorSpeed);
+    steppers[i].setAcceleration(motorAccel);
+    steppers[i].moveTo(inputArray[i]);
+    
+    inputArray[i] = 0;
+  }
+  Serial.println();  
+}
+
+void printMotorPositions() {
+  Serial.print("X");
+  for(int i = 0; i < NUM_STEPPERS; i++) {
+    Serial.print(steppers[i].currentPosition());
+    Serial.print(",");
+  }
+  Serial.println();
+}
+
