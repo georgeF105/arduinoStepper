@@ -12,7 +12,7 @@
 #include <Adafruit_MotorShield.h>
 //#include "utility/Adafruit_PWMServoDriver.h"
 
-#define NUM_STEPPERS 12
+#define NUM_STEPPERS 11
 #define STEP_MODE DOUBLE // you can change this to SINGLE, DOUBLE or INTERLEAVE or MICROSTEP
 #define motorSpeed 1200
 #define motorAccel 1000
@@ -23,15 +23,14 @@ const String stepperStart = " 1";
 const String stepperStop = " 0";
 
 String inputString = "";
-//int inputArray[12];
 int currentInputIndex = 0;
 boolean positionChanged = false;
 
 
-int inputArray[12] = {-MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL};
-int limitPins[NUM_STEPPERS] = {2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14 };
+int inputArray[NUM_STEPPERS] = {-MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL, -MAX_TRAVEL};
+int limitPins[NUM_STEPPERS] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
 
-boolean stepperRunning[NUM_STEPPERS] = {false, false, false, false, false, false,false, false, false, false, false, false};
+boolean stepperRunning[NUM_STEPPERS] = {false, false, false, false, false, false,false, false, false, false, false};
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS0 = Adafruit_MotorShield(); // default board ID
@@ -53,8 +52,7 @@ Adafruit_StepperMotor *motors[NUM_STEPPERS] = {
   AFMS3.getStepper(200, 2),
   AFMS4.getStepper(200, 1),
   AFMS4.getStepper(200, 2),
-  AFMS5.getStepper(200, 1),
-  AFMS5.getStepper(200, 2)
+  AFMS5.getStepper(200, 1)
 };
 
 // wrappers for the Adafruit motors to work with AccelStepper
@@ -97,18 +95,17 @@ void backwardstep11() { motors[11]->onestep(BACKWARD, STEP_MODE); }
 
 // wrap the motors in an AccelStepper object array
 AccelStepper steppers[NUM_STEPPERS] = {
-  AccelStepper(forwardstep0, backwardstep0),
-  AccelStepper(forwardstep1, backwardstep1),
-  AccelStepper(forwardstep2, backwardstep2),
-  AccelStepper(forwardstep3, backwardstep3),
-  AccelStepper(forwardstep2, backwardstep4),
-  AccelStepper(forwardstep3, backwardstep5),
-  AccelStepper(forwardstep0, backwardstep6),
-  AccelStepper(forwardstep1, backwardstep7),
-  AccelStepper(forwardstep2, backwardstep8),
-  AccelStepper(forwardstep3, backwardstep9),
-  AccelStepper(forwardstep2, backwardstep10),
-  AccelStepper(forwardstep3, backwardstep11)
+  AccelStepper(backwardstep0, forwardstep0),
+  AccelStepper(backwardstep1, forwardstep1),
+  AccelStepper(backwardstep2, forwardstep2),
+  AccelStepper(backwardstep3, forwardstep3),
+  AccelStepper(backwardstep4, forwardstep4),
+  AccelStepper(backwardstep5, forwardstep5),
+  AccelStepper(backwardstep6, forwardstep6),
+  AccelStepper(backwardstep7, forwardstep7),
+  AccelStepper(backwardstep8, forwardstep8),
+  AccelStepper(backwardstep9, forwardstep9),
+  AccelStepper(backwardstep10, forwardstep10)
 };
 
 void setup() {  
@@ -138,16 +135,24 @@ void setup() {
 
 void loop() {
   for( int i=0; i <  NUM_STEPPERS; i++) {
-    steppers[i].run();
-    // check to see if any moves have finished
-    if ((steppers[i].distanceToGo() == 0 && stepperRunning[i]) || (digitalRead(limitPins[i]) == HIGH && stepperRunning[i])) {
-      if (digitalRead(limitPins[i]) == HIGH) {
+    if (stepperRunning[i]) {
+      steppers[i].run();
+      // check to see if any moves have finished
+      if (steppers[i].distanceToGo() < 0 && stepperRunning[i] && digitalRead(limitPins[i]) == HIGH) {
+        Serial.print("Zeroed motor: ");
+        Serial.println(i);
+        motors[i]->release();
         steppers[i].setCurrentPosition(0);
         steppers[i].moveTo(0);
+        stepperRunning[i] = false;
+        positionChanged = true;
+      } else if (steppers[i].distanceToGo() == 0 && stepperRunning[i]) {
+        motors[i]->release();
+        stepperRunning[i] = false;
+        positionChanged = true;
       }
+    } else {
       motors[i]->release();
-      stepperRunning[i] = false;
-      positionChanged = true;
     }
   }
   
@@ -166,6 +171,7 @@ void serialInput() {
     char inChar = (char)Serial.read();
     if(inChar == 'P') {
       printMotorPositions();
+      Serial.read();
     } else if(inChar == '?') {
       currentInputIndex = 0;
     } else if (inChar == ',') {
@@ -202,7 +208,7 @@ void updateMotorPositions() {
 }
 
 void printMotorPositions() {
-  Serial.print("X");
+  Serial.print("Pos");
   for(int i = 0; i < NUM_STEPPERS; i++) {
     Serial.print(steppers[i].currentPosition());
     Serial.print(",");

@@ -1,0 +1,4 @@
+{
+    "sketch": "arduinoStepper/arduinoStepper.ino",
+    "board": "arduino:avr:uno"
+}

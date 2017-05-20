@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/george/Documents/arduino-1.6.11/hardware/arduino/avr/cores/arduino"
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": false,
+                "path": [
+                    "/home/george/Documents/arduino-1.6.11/hardware/arduino/avr/cores/arduino"
+                ]
+            }
+        }
+    ]
+}
